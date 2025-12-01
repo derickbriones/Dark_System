@@ -22,8 +22,9 @@
   --box-shadow: 0 2rem 3rem var(--color-light);
 }
 
-/*=============== DARK THEME VARAIBLES ===============*/
-.dark-theme-variables {
+/*=============== DARK THEME VARIABLES ===============*/
+body[data-theme="dark"],
+body.dark-theme-variables {
   --color-background: #181a1e;
   --color-white: #202528;
   --color-dark: #edeffd;
@@ -56,6 +57,7 @@ body {
   user-select: none;
   overflow-x: hidden;
   color: var(--color-dark);
+  transition: background-color 300ms ease, color 300ms ease;
 }
 
 .container {
@@ -260,16 +262,16 @@ main .date input[type="date"] {
   color: var(--color-dark);
 }
 
-/* Calendar icon color: black in light mode, white in dark mode.
-   Do NOT change size/appearance — only apply a color tweak via filter. */
-
-/* Ensure default (light) mode shows the normal (dark/black) icon */
+/* Calendar icon color: black in light mode, white in dark mode. */
 main .date input[type="date"]::-webkit-calendar-picker-indicator {
   -webkit-filter: none;
   filter: none;
 }
 
-/* Dark mode: invert/brighten the native icon so it appears white */
+body[data-theme="dark"]
+  main
+  .date
+  input[type="date"]::-webkit-calendar-picker-indicator,
 body.dark-theme-variables
   main
   .date
@@ -278,10 +280,14 @@ body.dark-theme-variables
   filter: invert(1) brightness(1.8) grayscale(1);
 }
 
-/* Firefox (if supported) */
 main .date input[type="date"]::-moz-calendar-picker-indicator {
   filter: none;
 }
+
+body[data-theme="dark"]
+  main
+  .date
+  input[type="date"]::-moz-calendar-picker-indicator,
 body.dark-theme-variables
   main
   .date
@@ -434,35 +440,34 @@ main table tbody td {
   height: 2.8rem;
   border-bottom: 1px solid var(--color-light);
   color: var(--color-dark-variant);
-  vertical-align: middle; /* ensure table cells vertically center inline content */
+  vertical-align: middle;
 }
 
-/* Replace previous action-buttons rules with tighter, centered styles */
+/* Action buttons styles */
 main table tbody td.action-buttons {
   display: flex;
-  justify-content: center; /* center horizontally */
-  align-items: center; /* center vertically */
+  justify-content: center;
+  align-items: center;
   gap: 0.5rem;
   padding: 0.25rem 0.6rem;
   white-space: nowrap;
   text-align: center;
 }
 
-/* Make action links true centered pills */
 .action-buttons .btn {
   display: inline-flex;
   align-items: center;
   justify-content: center;
   padding: 0.35rem 0.75rem;
-  min-width: 0; /* allow width to follow text */
+  min-width: 0;
   height: auto;
-  line-height: 1; /* keep text vertically centered */
+  line-height: 1;
   border-radius: 0.5rem;
   box-sizing: border-box;
   font-size: 0.95rem;
 }
 
-/* Ensure Edit / Delete text is white inside the Actions cell (higher specificity) */
+/* Ensure Edit / Delete text is white inside the Actions cell */
 main table tbody td.action-buttons a.btn,
 main table tbody td.action-buttons a.btn:link,
 main table tbody td.action-buttons a.btn:visited {
@@ -653,6 +658,7 @@ main .recent-orders a {
   border-radius: var(--card-border-radius);
   box-shadow: var(--box-shadow);
   margin-top: 1rem;
+  transition: all 300ms ease;
 }
 
 .form-group {
@@ -676,12 +682,14 @@ main .recent-orders a {
   border: 1px solid var(--color-light);
   color: var(--color-dark);
   font-family: inherit;
+  transition: all 300ms ease;
 }
 
 .form-group input:focus,
 .form-group select:focus,
 .form-group textarea:focus {
   border-color: var(--color-primary);
+  background: var(--color-white);
 }
 
 .btn {
@@ -717,7 +725,128 @@ main .recent-orders a {
   gap: 0.5rem;
 }
 
-/*=============== MEDIA ===============*/
+/* Invoice specific styles */
+.invoice-container {
+  background: var(--color-white);
+  padding: var(--card-padding);
+  border-radius: var(--card-border-radius);
+  box-shadow: var(--box-shadow);
+  margin-top: 1rem;
+  transition: all 300ms ease;
+}
+
+.invoice-header {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 2rem;
+  border-bottom: 2px solid var(--color-light);
+  padding-bottom: 1rem;
+}
+
+.invoice-details {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 2rem;
+  margin-bottom: 2rem;
+}
+
+.invoice-items table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.invoice-items th,
+.invoice-items td {
+  padding: 0.8rem;
+  border-bottom: 1px solid var(--color-light);
+  text-align: left;
+  color: var(--color-dark);
+}
+
+.invoice-total {
+  text-align: right;
+  margin-top: 1rem;
+  font-size: 1.2rem;
+  font-weight: bold;
+  color: var(--color-dark);
+}
+
+.print-btn {
+  margin-top: 1rem;
+  background: var(--color-primary);
+  color: var(--color-white);
+  padding: 0.8rem 1.5rem;
+  border-radius: var(--border-radius-1);
+  cursor: pointer;
+  border: none;
+  transition: all 300ms ease;
+}
+
+.print-btn:hover {
+  background: var(--color-primary-variant);
+}
+
+/* File input styling */
+input[type="file"] {
+  background: var(--color-background);
+  color: var(--color-dark);
+  padding: 0.8rem;
+  border-radius: var(--border-radius-1);
+  border: 1px solid var(--color-light);
+  width: 100%;
+  font-family: inherit;
+  transition: all 300ms ease;
+}
+
+/* Ensure all text colors adapt to dark mode */
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  color: var(--color-dark);
+}
+
+/* Status colors that work in both themes */
+.warning {
+  color: var(--color-warning);
+}
+
+.success {
+  color: var(--color-success);
+}
+
+.danger {
+  color: var(--color-danger);
+}
+
+.primary {
+  color: var(--color-primary);
+}
+
+/* Additional dark mode enhancements for form elements */
+select option {
+  background: var(--color-white);
+  color: var(--color-dark);
+}
+
+/* Ensure the date input works in dark mode */
+main .date input[type="date"] {
+  background: var(--color-light);
+  color: var(--color-dark);
+  border: none;
+  border-radius: var(--border-radius-1);
+  padding: 0.5rem 1rem;
+}
+
+/* Sidebar active state in dark mode */
+aside .sidebar a.active {
+  background: var(--color-light);
+  color: var(--color-primary);
+}
+
+/*=============== MEDIA QUERIES ===============*/
 
 @media screen and (max-width: 1200px) {
   .container {
