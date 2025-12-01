@@ -1,343 +1,301 @@
 <?php
-include 'config.php';
+// Start session to manage admin login state
+session_start();
 
-// Fetch statistics with percentage calculations
-$total_sales_query = "SELECT SUM(Amount) as total_sales FROM payment";
-$total_sales_result = $conn->query($total_sales_query);
-$total_sales = $total_sales_result->fetch_assoc()['total_sales'] ?? 0;
+// If admin is already logged in, redirect to dashboard
+if (isset($_SESSION['user_id'])) {
+    header('Location: admin-dashboard.php');
+    exit();
+}
 
-$total_orders_query = "SELECT COUNT(*) as total_orders FROM orders";
-$total_orders_result = $conn->query($total_orders_query);
-$total_orders = $total_orders_result->fetch_assoc()['total_orders'] ?? 0;
+// Initialize variables for error messages and success state
+$error = '';
+$success = false;
 
-$total_products_query = "SELECT COUNT(*) as total_products FROM product";
-$total_products_result = $conn->query($total_products_query);
-$total_products = $total_products_result->fetch_assoc()['total_products'] ?? 0;
+// List of authorized admin email addresses
+$admin_emails = [
+    'admin@fabulousfinds.com',
+];
 
-// Calculate percentages based on realistic targets
-$sales_target = 1000; // $1000 target
-$orders_target = 100;  // 100 orders target  
-$products_target = 100; // 100 products target
-
-$sales_percentage = $total_sales > 0 ? min(100, ($total_sales / $sales_target) * 100) : 0;
-$orders_percentage = $total_orders > 0 ? min(100, ($total_orders / $orders_target) * 100) : 0;
-$products_percentage = $total_products > 0 ? min(100, ($total_products / $products_target) * 100) : 0;
-
-// Round percentages
-$sales_percentage = round($sales_percentage);
-$orders_percentage = round($orders_percentage);
-$products_percentage = round($products_percentage);
-
-// Fetch recent orders
-$recent_orders_query = "
-    SELECT o.OrderID, u.Name as CustomerName, o.OrderDate, o.Status, p.Amount 
-    FROM orders o 
-    JOIN user u ON o.UserID = u.UserID 
-    LEFT JOIN payment p ON o.OrderID = p.OrderID 
-    ORDER BY o.OrderDate DESC 
-    LIMIT 5
-";
-$recent_orders_result = $conn->query($recent_orders_query);
+// Handle form submission
+if ($_SERVER['REQUEST_METHOD'] == 'POST') {
+    $email = $_POST['email'] ?? '';
+    $password = $_POST['password'] ?? '';
+    
+    try {
+        // Connect to database
+        $pdo = new PDO("mysql:host=localhost;dbname=fabulous_finds", "root", "");
+        
+        // Find user by email
+        $stmt = $pdo->prepare("SELECT UserID, Name, Password FROM user WHERE Email = ?");
+        $stmt->execute([$email]);
+        $user = $stmt->fetch();
+        
+        // Check if user exists AND is an admin
+        if ($user && password_verify($password, $user['Password'])) {
+            if (in_array($email, $admin_emails)) {
+                // Admin login successful - set session variables
+                $_SESSION['user_id'] = $user['UserID'];
+                $_SESSION['user_name'] = $user['Name'];
+                $_SESSION['logged_in'] = true;
+                $_SESSION['is_admin'] = true; // Admin flag
+                
+                $success = true;
+            } else {
+                $error = 'Access denied. Admin privileges required!';
+            }
+        } else {
+            $error = 'Invalid email or password!';
+        }
+        
+    } catch (Exception $e) {
+        $error = 'Login failed. Please try again.';
+    }
+}
 ?>
+
 <!DOCTYPE html>
-<html lang="en">
-
+<html>
 <head>
-  <meta charset="UTF-8" />
-  <meta http-equiv="X-UA-Compatible" content="IE=edge" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <link href="https://fonts.googleapis.com/icon?family=Material+Icons+Sharp" rel="stylesheet" />
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.1.1/css/all.min.css" />
-  <link rel="icon" type="image/png" href="images/icon.png" />
-  <link rel="stylesheet" href="style.css" />
-  <title>Dashboard - Fabulous Finds</title>
+    <title> FABULOUS FINDS ADMIN DASHBOARD </title> 
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="icon" type="image/jpg" href="../assets/img/Fabulous-finds.png">
+    <link rel="stylesheet" href="../assets/css/login-style.css">
+    <style>
+        /* Success message styling */
+        .success-message {
+            display: none;
+        }
+        .success-message.show {
+            display: block;
+        }
+        
+        /* Admin-only notice styling */
+        .admin-notice {
+            background: #fff3cd;
+            border: 1px solid #ffeaa7;
+            color: #856404;
+            padding: 10px;
+            border-radius: 5px;
+            margin-bottom: 15px;
+            text-align: center;
+            font-size: 14px;
+        }
+        
+        /* Error message styling */
+        .error-message-global {
+            background: #f8d7da;
+            border: 1px solid #f5c6cb;
+            color: #721c24;
+            padding: 10px;
+            border-radius: 5px;
+            margin-bottom: 15px;
+            text-align: center;
+            font-size: 14px;
+        }
+    </style>
 </head>
-
 <body>
-  <div class="container">
-    <aside>
-      <div class="top">
-        <div class="logo">
-          <img src="images/icon.png" alt="Logo" class="site-logo" />
-          <h2>FABULOUS <span class="primary">FINDS</span></h2>
-        </div>
-        <div class="close" id="close-btn">
-          <span class="material-icons-sharp">close</span>
-        </div>
-      </div>
-      <div class="sidebar">
-        <a href="index.php" class="active">
-          <span class="material-icons-sharp">grid_view</span>
-          <h3>Dashboard</h3>
-        </a>
-        <a href="products.php">
-          <span class="material-icons-sharp">inventory</span>
-          <h3>Products</h3>
-        </a>
-        <a href="orders.php">
-          <span class="material-icons-sharp">receipt_long</span>
-          <h3>Orders</h3>
-        </a>
-        <a href="order_summary.php">
-          <span class="material-icons-sharp">summarize</span>
-          <h3>Order Summary</h3>
-        </a>
-        <a href="order_history.php">
-          <span class="material-icons-sharp">history</span>
-          <h3>Order History</h3>
-        </a>
-        <a href="invoice.php">
-          <span class="material-icons-sharp">receipt</span>
-          <h3>Invoice/Receipt</h3>
-        </a>
-        <a href="reports.php">
-          <span class="material-icons-sharp">assessment</span>
-          <h3>Reports</h3>
-        </a>
-        <a href="add_product.php">
-          <span class="material-icons-sharp">add</span>
-          <h3>Add Product</h3>
-        </a>
-        <a href="#">
-          <span class="material-icons-sharp">logout</span>
-          <h3>Logout</h3>
-        </a>
-      </div>
-    </aside>
-    <main>
-      <h1>Dashboard</h1>
-      <div class="date">
-        <input type="date" value="<?php echo date('Y-m-d'); ?>" />
-      </div>
-      <div class="insights">
-        <!-- Total Sales -->
-        <div class="sales">
-          <span class="material-icons-sharp">analytics</span>
-          <div class="middle">
-            <div class="left">
-              <h3>Total Sales</h3>
-              <h1>$<?php echo number_format($total_sales, 2); ?></h1>
-            </div>
-            <div class="progress">
-              <svg viewBox="0 0 100 100">
-                <circle cx="50" cy="50" r="45" class="progress-circle"></circle>
-                <?php if ($sales_percentage > 0): ?>
-                  <circle cx="50" cy="50" r="45"
-                    style="stroke-dashoffset: calc(283px - (283px * <?php echo $sales_percentage; ?>) / 100)"
-                    class="progress-circle-fill sales-fill"></circle>
-                <?php endif; ?>
-              </svg>
-              <div class="number">
-                <p><?php echo $sales_percentage; ?>%</p>
-              </div>
-            </div>
-          </div>
-          <small class="text-muted">Last 24 Hours</small>
-        </div>
 
-        <!-- Total Orders -->
-        <div class="expenses">
-          <span class="material-icons-sharp">bar_chart</span>
-          <div class="middle">
-            <div class="left">
-              <h3>Total Orders</h3>
-              <h1><?php echo $total_orders; ?></h1>
+    <!-- Main login container -->
+    <div class="login-container">
+        <div class="login-card">
+            <!-- Login header with logo -->
+            <div class="login-header">
+                <div class="logo">
+                    <img src="../assets/img/Fabulous-finds.png" alt="Fabulous Finds Logo" width="100" height="100">
+                </div>
+                <h1> Admin Dashboard </h1>
+                <p> Administrative access required </p>
             </div>
-            <div class="progress">
-              <svg viewBox="0 0 100 100">
-                <circle cx="50" cy="50" r="45" class="progress-circle"></circle>
-                <?php if ($orders_percentage > 0): ?>
-                  <circle cx="50" cy="50" r="45"
-                    style="stroke-dashoffset: calc(283px - (283px * <?php echo $orders_percentage; ?>) / 100)"
-                    class="progress-circle-fill expenses-fill"></circle>
-                <?php endif; ?>
-              </svg>
-              <div class="number">
-                <p><?php echo $orders_percentage; ?>%</p>
-              </div>
-            </div>
-          </div>
-          <small class="text-muted">Last 24 Hours</small>
-        </div>
 
-        <!-- Total Products -->
-        <div class="income">
-          <span class="material-icons-sharp">stacked_line_chart</span>
-          <div class="middle">
-            <div class="left">
-              <h3>Total Products</h3>
-              <h1><?php echo $total_products; ?></h1>
-            </div>
-            <div class="progress">
-              <svg viewBox="0 0 100 100">
-                <circle cx="50" cy="50" r="45" class="progress-circle"></circle>
-                <?php if ($products_percentage > 0): ?>
-                  <circle cx="50" cy="50" r="45"
-                    style="stroke-dashoffset: calc(283px - (283px * <?php echo $products_percentage; ?>) / 100)"
-                    class="progress-circle-fill income-fill"></circle>
-                <?php endif; ?>
-              </svg>
-              <div class="number">
-                <p><?php echo $products_percentage; ?>%</p>
-              </div>
-            </div>
-          </div>
-          <small class="text-muted">Last 24 Hours</small>
-        </div>
-      </div>
-
-      <div class="recent-orders">
-        <h2>Recent Orders</h2>
-        <table>
-          <thead>
-            <tr>
-              <th>Order ID</th>
-              <th>Customer</th>
-              <th>Amount</th>
-              <th>Order Date</th>
-              <th>Status</th>
-            </tr>
-          </thead>
-          <tbody>
-            <?php if ($recent_orders_result->num_rows > 0): ?>
-              <?php while ($order = $recent_orders_result->fetch_assoc()): ?>
-                <tr>
-                  <td>#<?php echo $order['OrderID']; ?></td>
-                  <td><?php echo htmlspecialchars($order['CustomerName']); ?></td>
-                  <td>$<?php echo number_format($order['Amount'] ?? 0, 2); ?></td>
-                  <td><?php echo date('M j, Y', strtotime($order['OrderDate'])); ?></td>
-                  <td class="<?php echo $order['Status'] == 'Pending' ? 'warning' : 'success'; ?>">
-                    <?php echo $order['Status']; ?>
-                  </td>
-                </tr>
-              <?php endwhile; ?>
+            <!-- Success page after login -->
+            <?php if ($success): ?>
+                <div class="success-message show" id="successMessage">
+                    <div class="success-icon">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+                            <circle cx="12" cy="12" r="12" fill="#635BFF"/>
+                            <path d="M8 12l3 3 5-5" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                        </svg>
+                    </div>
+                    <h3>Admin Access Granted!</h3>
+                    <p>Redirecting to admin dashboard...</p>
+                </div>
+                
+                <!-- Auto-redirect to admin dashboard -->
+                <script>
+                    setTimeout(function() {
+                        window.location.href = 'admin-dashboard.php';
+                    }, 2000);
+                </script>
+                
+            <!-- Login form (shown when not logged in) -->
             <?php else: ?>
-              <tr>
-                <td colspan="5" style="text-align: center;">No recent orders</td>
-              </tr>
-            <?php endif; ?>
-          </tbody>
-        </table>
-        <a href="orders.php">Show All</a>
-      </div>
-    </main>
-    <div class="right">
-      <div class="top">
-        <button id="menu-btn">
-          <span class="primary material-icons-sharp">menu</span>
-        </button>
-        <div class="theme-toggler">
-          <span class="material-icons-sharp active">light_mode</span>
-          <span class="material-icons-sharp">dark_mode</span>
-        </div>
-        <div class="profile">
-          <div class="info">
-            <p>Hey, <b>Admin</b></p>
-            <small class="text-muted">Administrator</small>
-          </div>
-          <div class="profile-photo">
-            <img src="images/profile.jpg" />
-          </div>
-        </div>
-      </div>
-      <div class="recent-updates">
-        <h2>Recent Updates</h2>
-        <div class="updates">
-          <?php
-          $updates_query = "
-                        SELECT u.Name, o.OrderDate 
-                        FROM orders o 
-                        JOIN user u ON o.UserID = u.UserID 
-                        WHERE o.Status = 'Completed' 
-                        ORDER BY o.OrderDate DESC 
-                        LIMIT 3
-                    ";
-          $updates_result = $conn->query($updates_query);
-          $update_messages = [
-            "received order of Night Lion Tech Smart Watch",
-            "received order of Night Lion Tech Perfume",
-            "received order of Night Lion Shoes"
-          ];
-          $i = 0;
-          if ($updates_result->num_rows > 0):
-            while ($update = $updates_result->fetch_assoc()):
-          ?>
-              <div class="update">
-                <div class="profile-photo">
-                  <img src="images/default_costumer_profile.png" />
-                </div>
-                <div class="message">
-                  <p><b><?php echo htmlspecialchars($update['Name']); ?></b> <?php echo $update_messages[$i] ?? 'received their order'; ?>.</p>
-                  <small class="text-muted"><?php echo date('M j, Y', strtotime($update['OrderDate'])); ?></small>
-                </div>
-              </div>
-            <?php $i++;
-            endwhile; ?>
-          <?php else: ?>
-            <div class="update">
-              <div class="profile-photo">
-                <img src="images/default_costumer_profile.png" />
-              </div>
-              <div class="message">
-                <p><b>No recent updates</b></p>
-                <small class="text-muted">Check back later for new orders</small>
-              </div>
-            </div>
-          <?php endif; ?>
-        </div>
-      </div>
-      <div class="sales-analytics">
-        <h2>Sales Analytics</h2>
-        <div class="item online">
-          <div class="icon">
-            <span class="material-icons-sharp">shopping_cart</span>
-          </div>
-          <div class="right">
-            <div class="info">
-              <h3>ONLINE ORDERS</h3>
-              <small class="text-muted">Last 24 Hours</small>
-            </div>
-            <h5 class="success">+39%</h5>
-            <h3>3695</h3>
-          </div>
-        </div>
-        <div class="item offline">
-          <div class="icon">
-            <span class="material-icons-sharp">local_mall</span>
-          </div>
-          <div class="right">
-            <div class="info">
-              <h3>OFFLINE ORDERS</h3>
-              <small class="text-muted">Last 24 Hours</small>
-            </div>
-            <h5 class="danger">-17%</h5>
-            <h3>1253</h3>
-          </div>
-        </div>
-        <div class="item customers">
-          <div class="icon">
-            <span class="material-icons-sharp">person</span>
-          </div>
-          <div class="right">
-            <div class="info">
-              <h3>NEW CUSTOMERS</h3>
-              <small class="text-muted">Last 24 Hours</small>
-            </div>
-            <h5 class="success">+25%</h5>
-            <h3>862</h3>
-          </div>
-        </div>
-        <div class="item add-product">
-          <div>
-            <span class="material-icons-sharp">add</span>
-            <h3>Add Product</h3>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
-  <script src="script.js"></script>
-</body>
+                <!-- Admin access warning -->
+                <?php if ($error && strpos($error, 'Access denied') !== false): ?>
+                    <div class="admin-notice">
+                        ⚠️ Admin access only - Regular users cannot login here
+                    </div>
+                <?php endif; ?>
 
+                <!-- Regular error messages -->
+                <?php if ($error && strpos($error, 'Access denied') === false): ?>
+                    <div class="error-message-global">
+                        <?php echo htmlspecialchars($error); ?>
+                    </div>
+                <?php endif; ?>
+
+                <!-- Admin login form -->
+                <form class="login-form" id="loginForm" method="POST" action="" novalidate>
+                    <!-- Email input field -->
+                    <div class="input-group">
+                        <input type="email" id="email" name="email" required autocomplete="email" placeholder=" " value="<?php echo htmlspecialchars($_POST['email'] ?? ''); ?>">
+                        <label for="email"> Admin Email </label>
+                        <span class="input-border"></span>
+                        <span class="error-message" id="emailError"></span>
+                    </div>
+
+                    <!-- Password input field -->
+                    <div class="input-group">
+                        <input type="password" id="password" name="password" required autocomplete="current-password" placeholder=" ">
+                        <label for="password"> Password </label>
+                        <span class="input-border"></span>
+                        <span class="error-message" id="passwordError"></span>
+                    </div>
+
+                    <!-- Remember me and forgot password -->
+                    <div class="form-options">
+                        <label for="checkbox-container">
+                            <input type="checkbox" id="remember" name="remember">
+                            remember me
+                        </label>
+                        <a href="#" class="forgot-link"> Forgot password? </a>
+                    </div>
+
+                    <!-- Submit button -->
+                    <button type="submit" class="submit-btn">
+                        <span class="btn-text"> Login </span>
+                    </button>
+                </form>
+
+                <!-- Social login divider -->
+                <div class="divider">
+                    <span> Or continue with </span>
+                </div>
+
+                <!-- Social login buttons -->
+                <div class="social-buttons">
+                    <button type="button" class="social-btn">
+                        <img src="../assets/img/google-icon.png" alt="Google" width="16" height="16">
+                        Google
+                    </button>
+                        
+                    <button type="button" class="social-btn">
+                        <img src="../assets/img/facebook-icon.png" alt="Facebook" width="16" height="16">
+                        Facebook
+                    </button>
+                </div>
+
+                <!-- Admin access contact link -->
+                <div class="signup-link">
+                    <span> Need admin access? </span>
+                    <a href=""> Contact administrator </a>
+                </div>
+            <?php endif; ?>
+        </div>
+    </div>
+
+    <!-- JavaScript for form validation and interactivity -->
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const form = document.getElementById('loginForm');
+            if (form) {
+                const submitBtn = document.querySelector('.submit-btn');
+                const emailInput = document.getElementById('email');
+                const passwordInput = document.getElementById('password');
+
+                // Floating labels functionality
+                const inputs = document.querySelectorAll('.input-group input');
+                inputs.forEach(input => {
+                    input.addEventListener('focus', function() {
+                        this.parentElement.classList.add('focused');
+                    });
+                    
+                    input.addEventListener('blur', function() {
+                        this.parentElement.classList.remove('focused');
+                        if (this.value) {
+                            this.parentElement.classList.add('has-value');
+                        }
+                    });
+
+                    // Check existing values on page load
+                    if (input.value) {
+                        input.parentElement.classList.add('has-value');
+                    }
+                });
+
+                // Form submission validation
+                form.addEventListener('submit', function(e) {
+                    let isValid = true;
+
+                    // Email validation
+                    if (!emailInput.value || !emailInput.value.includes('@')) {
+                        showError(emailInput, 'Please enter a valid email');
+                        isValid = false;
+                    }
+
+                    // Password validation
+                    if (!passwordInput.value) {
+                        showError(passwordInput, 'Password is required');
+                        isValid = false;
+                    }
+
+                    // Prevent submission if validation fails
+                    if (!isValid) {
+                        e.preventDefault();
+                        return;
+                    }
+
+                    // Show loading animation
+                    if (submitBtn) {
+                        submitBtn.classList.add('loading');
+                    }
+                });
+
+                // Display error messages
+                function showError(input, message) {
+                    const inputGroup = input.closest('.input-group');
+                    const errorElement = inputGroup.querySelector('.error-message');
+                    
+                    inputGroup.classList.add('error');
+                    errorElement.textContent = message;
+                    errorElement.classList.add('show');
+                }
+
+                // Clear error messages on input
+                emailInput.addEventListener('input', () => clearError(emailInput));
+                passwordInput.addEventListener('input', () => clearError(passwordInput));
+
+                function clearError(input) {
+                    const inputGroup = input.closest('.input-group');
+                    const errorElement = inputGroup.querySelector('.error-message');
+                    
+                    inputGroup.classList.remove('error');
+                    errorElement.classList.remove('show');
+                }
+
+                // Social buttons (placeholder functionality)
+                document.querySelectorAll('.social-btn').forEach(button => {
+                    button.addEventListener('click', function() {
+                        alert('Social login would be implemented here');
+                    });
+                });
+            }
+
+            // Debug log
+            console.log('✅ Login form JavaScript loaded!');
+        });
+    </script>
+
+</body>
 </html>
-<?php $conn->close(); ?>
