@@ -1,7 +1,22 @@
 <?php
-include 'config.php';
+// Start session for admin authentication
+session_start();
 
-// Fetch orders for invoice generation
+// Database connection configuration
+$host = "localhost";
+$user = "root";
+$password = "";
+$database = "fabulous_finds";
+
+// Establish database connection
+$conn = mysqli_connect($host, $user, $password, $database);
+
+// Check connection
+if (!$conn) {
+  die("Database connection failed: " . mysqli_connect_error());
+}
+
+// Fetch orders for invoice generation with multiple table joins
 $invoices_query = "
     SELECT o.OrderID, u.Name as CustomerName, u.Email, u.Address,
            s.Name as SellerName, s.ContactInfo as SellerContact,
@@ -9,13 +24,13 @@ $invoices_query = "
            py.Amount, py.PaymentMethod, py.PaymentDate,
            o.OrderDate, o.Status
     FROM orders o
-    JOIN user u ON o.UserID = u.UserID
-    JOIN seller s ON o.SellerID = s.SellerID
-    JOIN orderdetails od ON o.OrderID = od.OrderID
-    JOIN product p ON od.ProductID = p.ProductID
-    LEFT JOIN payment py ON o.OrderID = py.OrderID
-    ORDER BY o.OrderDate DESC
-    LIMIT 10
+    JOIN user u ON o.UserID = u.UserID           -- Customer info
+    JOIN seller s ON o.SellerID = s.SellerID     -- Seller info
+    JOIN orderdetails od ON o.OrderID = od.OrderID -- Order items
+    JOIN product p ON od.ProductID = p.ProductID  -- Product details
+    LEFT JOIN payment py ON o.OrderID = py.OrderID -- Payment info (optional)
+    ORDER BY o.OrderDate DESC                     -- Show newest first
+    LIMIT 10                                      -- Limit to 10 invoices
 ";
 $invoices_result = $conn->query($invoices_query);
 ?>
@@ -26,9 +41,13 @@ $invoices_result = $conn->query($invoices_query);
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <link href="https://fonts.googleapis.com/icon?family=Material+Icons+Sharp" rel="stylesheet" />
-  <link rel="stylesheet" href="style.css" />
+  <link rel="icon" type="image/png" href="../assets/img/Fabulous-finds.png" />
+  <link rel="stylesheet" href="../assets/css/admin-style.css" />
   <title>Invoices - Fabulous Finds</title>
+  
+  <!-- Invoice-specific styling -->
   <style>
+    /* Invoice container styling */
     .invoice-container {
       background: var(--color-white);
       padding: var(--card-padding);
@@ -37,6 +56,7 @@ $invoices_result = $conn->query($invoices_query);
       margin-top: 1rem;
     }
 
+    /* Invoice header with company and invoice info */
     .invoice-header {
       display: flex;
       justify-content: space-between;
@@ -45,6 +65,7 @@ $invoices_result = $conn->query($invoices_query);
       padding-bottom: 1rem;
     }
 
+    /* Two-column layout for customer and seller info */
     .invoice-details {
       display: grid;
       grid-template-columns: 1fr 1fr;
@@ -52,6 +73,7 @@ $invoices_result = $conn->query($invoices_query);
       margin-bottom: 2rem;
     }
 
+    /* Invoice items table styling */
     .invoice-items table {
       width: 100%;
       border-collapse: collapse;
@@ -64,6 +86,7 @@ $invoices_result = $conn->query($invoices_query);
       text-align: left;
     }
 
+    /* Total amount section */
     .invoice-total {
       text-align: right;
       margin-top: 1rem;
@@ -71,6 +94,7 @@ $invoices_result = $conn->query($invoices_query);
       font-weight: bold;
     }
 
+    /* Print button styling */
     .print-btn {
       margin-top: 1rem;
       background: var(--color-primary);
@@ -84,17 +108,24 @@ $invoices_result = $conn->query($invoices_query);
 </head>
 
 <body>
+  <!-- Main admin container -->
   <div class="container">
+    
+    <!-- Left sidebar navigation -->
     <aside>
       <div class="top">
+        <!-- Brand logo and name -->
         <div class="logo">
-          <img src="images/icon.png" alt="Logo" class="site-logo" />
+          <img src="../assets/img/Fabulous-finds.png" alt="Logo" class="site-logo" />
           <h2>FABULOUS <span class="primary">FINDS</span></h2>
         </div>
+        <!-- Close button for mobile -->
         <div class="close" id="close-btn">
           <span class="material-icons-sharp">close</span>
         </div>
       </div>
+      
+      <!-- Navigation menu -->
       <div class="sidebar">
         <a href="index.php">
           <span class="material-icons-sharp">grid_view</span>
@@ -116,6 +147,7 @@ $invoices_result = $conn->query($invoices_query);
           <span class="material-icons-sharp">history</span>
           <h3>Order History</h3>
         </a>
+        <!-- Current page - active -->
         <a href="invoice.php" class="active">
           <span class="material-icons-sharp">receipt</span>
           <h3>Invoice/Receipt</h3>
@@ -128,22 +160,30 @@ $invoices_result = $conn->query($invoices_query);
           <span class="material-icons-sharp">add</span>
           <h3>Add Product</h3>
         </a>
-        <a href="#">
+        <!-- Logout link -->
+        <a href="logout.php">
           <span class="material-icons-sharp">logout</span>
           <h3>Logout</h3>
         </a>
       </div>
     </aside>
+    
+    <!-- Main content area -->
     <main>
       <h1>Invoice & Receipt Management</h1>
 
+      <!-- Loop through each invoice result -->
       <?php while ($invoice = $invoices_result->fetch_assoc()): ?>
         <div class="invoice-container">
+          
+          <!-- Invoice header with company and invoice info -->
           <div class="invoice-header">
+            <!-- Company information -->
             <div>
               <h2>FABULOUS FINDS</h2>
-              <p>123 Business Street<br>City, State 12345<br>Phone: (555) 123-4567</p>
+              <p>Polangui<br>Albay, 4505<br>Phone: (555) 123-4567</p>
             </div>
+            <!-- Invoice details -->
             <div style="text-align: right;">
               <h2>INVOICE</h2>
               <p>Invoice #: FF<?php echo str_pad($invoice['OrderID'], 6, '0', STR_PAD_LEFT); ?></p>
@@ -151,13 +191,16 @@ $invoices_result = $conn->query($invoices_query);
             </div>
           </div>
 
+          <!-- Customer and seller information -->
           <div class="invoice-details">
+            <!-- Customer (bill to) information -->
             <div>
               <h3>Bill To:</h3>
               <p><strong><?php echo $invoice['CustomerName']; ?></strong><br>
                 <?php echo $invoice['Email']; ?><br>
                 <?php echo $invoice['Address']; ?></p>
             </div>
+            <!-- Seller (from) information -->
             <div>
               <h3>From:</h3>
               <p><strong><?php echo $invoice['SellerName']; ?></strong><br>
@@ -165,6 +208,7 @@ $invoices_result = $conn->query($invoices_query);
             </div>
           </div>
 
+          <!-- Invoice items table -->
           <div class="invoice-items">
             <table>
               <thead>
@@ -179,28 +223,78 @@ $invoices_result = $conn->query($invoices_query);
                 <tr>
                   <td><?php echo $invoice['ProductName']; ?></td>
                   <td><?php echo $invoice['Quantity']; ?></td>
-                  <td>$<?php echo number_format($invoice['Price'], 2); ?></td>
-                  <td>$<?php echo number_format($invoice['Amount'] ?? 0, 2); ?></td>
+                  <td>₱<?php echo number_format($invoice['Price'], 2); ?></td>
+                  <td>₱<?php echo number_format($invoice['Amount'] ?? 0, 2); ?></td>
                 </tr>
               </tbody>
             </table>
           </div>
 
+          <!-- Invoice totals and payment info -->
           <div class="invoice-total">
-            <p>Total: $<?php echo number_format($invoice['Amount'] ?? 0, 2); ?></p>
-            <p>Payment Method: <?php echo $invoice['PaymentMethod'] ?? 'N/A'; ?></p>
-            <p>Status: <span class="<?php echo $invoice['Status'] == 'Completed' ? 'success' : 'warning'; ?>">
+            <p>Total: ₱<?php echo number_format($invoice['Amount'] ?? 0, 2); ?></p>
+            <p>Payment Method: <?php 
+              // Format payment method for display
+              if (isset($invoice['PaymentMethod'])) {
+                if ($invoice['PaymentMethod'] == 'gcash') {
+                  echo 'GCash';
+                } elseif ($invoice['PaymentMethod'] == 'paymaya') {
+                  echo 'PayMaya';
+                } elseif ($invoice['PaymentMethod'] == 'cod') {
+                  echo 'Cash on Delivery';
+                } else {
+                  echo $invoice['PaymentMethod'];
+                }
+              } else {
+                echo 'N/A';
+              }
+            ?></p>
+            <!-- Order status with color coding -->
+            <p>Status: <span class="<?php echo $invoice['Status'] == 'Completed' ? 'success' : ($invoice['Status'] == 'Cancelled' ? 'danger' : 'warning'); ?>">
                 <?php echo $invoice['Status']; ?>
               </span></p>
           </div>
 
+          <!-- Print button for this invoice -->
           <button class="print-btn" onclick="window.print()">Print Invoice</button>
         </div>
       <?php endwhile; ?>
     </main>
+    
+    <!-- Right sidebar -->
+    <div class="right">
+      <div class="top">
+        <!-- Mobile menu toggle -->
+        <button id="menu-btn">
+          <span class="primary material-icons-sharp">menu</span>
+        </button>
+        
+        <!-- Theme toggle -->
+        <div class="theme-toggler">
+          <span class="material-icons-sharp active">light_mode</span>
+          <span class="material-icons-sharp">dark_mode</span>
+        </div>
+        
+        <!-- Admin profile section -->
+        <div class="profile">
+          <div class="info">
+            <p>Hey, <b>Admin</b></p>
+            <small class="text-muted">Administrator</small>
+          </div>
+          <div class="profile-photo">
+            <img src="../assets/img/profile.jpg" />
+          </div>
+        </div>
+      </div>
+    </div>
   </div>
-  <script src="script.js"></script>
+  
+  <!-- Admin dashboard JavaScript -->
+  <script src="../assets/js/admin-js.js"></script>
 </body>
 
 </html>
-<?php $conn->close(); ?>
+<?php 
+// Close database connection
+$conn->close(); 
+?>
