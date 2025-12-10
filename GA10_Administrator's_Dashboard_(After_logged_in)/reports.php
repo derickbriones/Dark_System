@@ -65,7 +65,7 @@ $inventory_report_result = $conn->query($inventory_report_query);
 <body>
   <!-- Main admin container -->
   <div class="container">
-    
+
     <!-- Left sidebar navigation -->
     <aside>
       <div class="top">
@@ -79,7 +79,7 @@ $inventory_report_result = $conn->query($inventory_report_query);
           <span class="material-icons-sharp">close</span>
         </div>
       </div>
-      
+
       <!-- Navigation menu -->
       <div class="sidebar">
         <a href="index.php">
@@ -122,7 +122,7 @@ $inventory_report_result = $conn->query($inventory_report_query);
         </a>
       </div>
     </aside>
-    
+
     <!-- Main content area -->
     <main>
       <h1>Sales & Inventory Reports</h1>
@@ -145,13 +145,13 @@ $inventory_report_result = $conn->query($inventory_report_query);
               <tr>
                 <!-- Date formatted for readability -->
                 <td><?php echo date('M j, Y', strtotime($report['order_date'])); ?></td>
-                
+
                 <!-- Number of orders that day -->
                 <td><?php echo $report['order_count']; ?></td>
-                
+
                 <!-- Daily revenue with currency formatting -->
                 <td>₱<?php echo number_format($report['daily_revenue'] ?? 0, 2); ?></td>
-                
+
                 <!-- Average order value for the day -->
                 <td>₱<?php echo number_format($report['avg_order_value'] ?? 0, 2); ?></td>
               </tr>
@@ -180,21 +180,21 @@ $inventory_report_result = $conn->query($inventory_report_query);
               <tr>
                 <!-- Product name -->
                 <td><?php echo $inventory['ProductName']; ?></td>
-                
+
                 <!-- Product category -->
                 <td><?php echo $inventory['Category']; ?></td>
-                
+
                 <!-- Product price with currency formatting -->
                 <td>₱<?php echo number_format($inventory['Price'], 2); ?></td>
-                
+
                 <!-- Stock quantity with warning color for low stock (<10) -->
                 <td class="<?php echo $inventory['StockQuantity'] < 10 ? 'danger' : 'success'; ?>">
                   <?php echo $inventory['StockQuantity']; ?>
                 </td>
-                
+
                 <!-- Number of times product has been ordered -->
                 <td><?php echo $inventory['times_ordered']; ?></td>
-                
+
                 <!-- Seller name -->
                 <td><?php echo $inventory['SellerName']; ?></td>
               </tr>
@@ -203,7 +203,7 @@ $inventory_report_result = $conn->query($inventory_report_query);
         </table>
       </div>
     </main>
-    
+
     <!-- Right sidebar -->
     <div class="right">
       <div class="top">
@@ -211,13 +211,13 @@ $inventory_report_result = $conn->query($inventory_report_query);
         <button id="menu-btn">
           <span class="primary material-icons-sharp">menu</span>
         </button>
-        
+
         <!-- Theme toggle -->
         <div class="theme-toggler">
           <span class="material-icons-sharp active">light_mode</span>
           <span class="material-icons-sharp">dark_mode</span>
         </div>
-        
+
         <!-- Admin profile section -->
         <div class="profile">
           <div class="info">
@@ -231,13 +231,13 @@ $inventory_report_result = $conn->query($inventory_report_query);
       </div>
     </div>
   </div>
-  
+
   <!-- Admin dashboard JavaScript -->
   <script src="../assets/js/admin-js.js"></script>
 </body>
 
 </html>
-<?php 
+<?php
 // Close database connection
-$conn->close(); 
+$conn->close();
 ?>
