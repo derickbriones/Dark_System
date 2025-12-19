@@ -13,13 +13,13 @@ $conn = mysqli_connect($host, $user, $password, $database);
 
 // Check database connection
 if (!$conn) {
-  die("Database connection failed: " . mysqli_connect_error());
+    die("Database connection failed: " . mysqli_connect_error());
 }
 
 // Redirect to cart if cart is empty
 if (!isset($_SESSION['cart']) || empty($_SESSION['cart'])) {
-  header("Location: cart.php");
-  exit;
+    header("Location: cart.php");
+    exit;
 }
 
 // Fetch product details for items in cart
@@ -34,21 +34,21 @@ $query = "SELECT ProductID, ProductName, Price, image FROM product WHERE Product
 $result = mysqli_query($conn, $query);
 
 // Process each product and calculate totals
-while ($row = mysqli_fetch_assoc($result)) {
-  $id = $row['ProductID'];
-  $qty = $_SESSION['cart'][$id];
-  $subtotal = $row['Price'] * $qty;
-  $total += $subtotal;
+while($row = mysqli_fetch_assoc($result)){
+    $id = $row['ProductID'];
+    $qty = $_SESSION['cart'][$id];
+    $subtotal = $row['Price'] * $qty;
+    $total += $subtotal;
 
-  // Store product details in array
-  $cart_items[] = [
-    'id' => $id,
-    'name' => $row['ProductName'],
-    'price' => $row['Price'],
-    'image' => $row['image'],
-    'qty' => $qty,
-    'subtotal' => $subtotal
-  ];
+    // Store product details in array
+    $cart_items[] = [
+        'id' => $id,
+        'name' => $row['ProductName'],
+        'price' => $row['Price'],
+        'image' => $row['image'],
+        'qty' => $qty,
+        'subtotal' => $subtotal
+    ];
 }
 
 // Initialize checkout form variables from session
@@ -57,7 +57,6 @@ $payment_method = isset($_SESSION['payment_method']) ? $_SESSION['payment_method
 ?>
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -72,7 +71,7 @@ $payment_method = isset($_SESSION['payment_method']) ? $_SESSION['payment_method
       margin-top: 15px;
       justify-content: flex-end;
     }
-
+    
     .btn-cancel {
       background: var(--color-danger);
       color: var(--color-white);
@@ -87,14 +86,13 @@ $payment_method = isset($_SESSION['payment_method']) ? $_SESSION['payment_method
       display: inline-block;
       text-align: center;
     }
-
+    
     .btn-cancel:hover {
       background: #e04a58;
       transform: translateY(-2px);
     }
   </style>
 </head>
-
 <body>
 
   <!-- HEADER (SAME AS INDEX.PHP) -->
@@ -110,7 +108,7 @@ $payment_method = isset($_SESSION['payment_method']) ? $_SESSION['payment_method
 
       <!-- User navigation links -->
       <div class="userlinks">
-        <!-- Shopping cart link -->
+         <!-- Shopping cart link -->
         <a href="cart.php">
           <span class="material-symbols-outlined"> shopping_cart </span>
         </a>
@@ -159,22 +157,22 @@ $payment_method = isset($_SESSION['payment_method']) ? $_SESSION['payment_method
       </tr>
 
       <!-- Loop through cart items -->
-      <?php foreach ($cart_items as $item): ?>
-        <tr>
-          <!-- Product image and name -->
-          <td class="product-info">
-            <img src="../assets/img/<?php echo $item['image']; ?>" alt="">
-            <div>
-              <?php echo $item['name']; ?>
-            </div>
-          </td>
-          <!-- Quantity -->
-          <td><?php echo $item['qty']; ?></td>
-          <!-- Unit price -->
-          <td>₱<?php echo number_format($item['price'], 2); ?></td>
-          <!-- Item subtotal -->
-          <td>₱<?php echo number_format($item['subtotal'], 2); ?></td>
-        </tr>
+      <?php foreach($cart_items as $item): ?>
+      <tr>
+        <!-- Product image and name -->
+        <td class="product-info">
+          <img src="../assets/img/<?php echo $item['image']; ?>" alt="">
+          <div>
+            <?php echo $item['name']; ?>
+          </div>
+        </td>
+        <!-- Quantity -->
+        <td><?php echo $item['qty']; ?></td>
+        <!-- Unit price -->
+        <td>₱<?php echo number_format($item['price'], 2); ?></td>
+        <!-- Item subtotal -->
+        <td>₱<?php echo number_format($item['subtotal'], 2); ?></td>
+      </tr>
       <?php endforeach; ?>
     </table>
 
@@ -188,9 +186,9 @@ $payment_method = isset($_SESSION['payment_method']) ? $_SESSION['payment_method
         <!-- Payment method selection -->
         <select name="payment_method" required>
           <option value="">-- Select Payment --</option>
-          <option value="COD" <?php if ($payment_method === 'COD') echo 'selected'; ?>> Cash on Delivery </option>
-          <option value="Gcash" <?php if ($payment_method === 'Gcash') echo 'selected'; ?>> Gcash </option>
-          <option value="Paymaya" <?php if ($payment_method === 'Paymaya') echo 'selected'; ?>> PayMaya </option>
+          <option value="COD" <?php if($payment_method==='COD') echo 'selected'; ?>> Cash on Delivery </option>
+          <option value="Gcash" <?php if($payment_method==='Gcash') echo 'selected'; ?>> Gcash </option>
+          <option value="Paymaya" <?php if($payment_method==='Paymaya') echo 'selected'; ?>> PayMaya </option>
         </select>
 
         <!-- Hidden input to pass total amount -->
@@ -200,7 +198,7 @@ $payment_method = isset($_SESSION['payment_method']) ? $_SESSION['payment_method
         <div class="checkout-buttons">
           <!-- Cancel button -->
           <a href="cart.php" class="btn-cancel">Cancel Order</a>
-
+          
           <!-- Submit button to place order -->
           <button type="submit" class="btn-place-order"> Place Order </button>
         </div>
@@ -213,28 +211,27 @@ $payment_method = isset($_SESSION['payment_method']) ? $_SESSION['payment_method
   <script>
     // Profile dropdown functionality
     document.addEventListener('DOMContentLoaded', function() {
-      const profileBtn = document.getElementById('profile-btn');
-      const dropdownMenu = document.getElementById('dropdown-menu');
-
-      if (profileBtn && dropdownMenu) {
-        profileBtn.addEventListener('click', function() {
-          dropdownMenu.classList.toggle('show');
-        });
-
-        // Close dropdown when clicking outside
-        document.addEventListener('click', function(event) {
-          if (!profileBtn.contains(event.target) && !dropdownMenu.contains(event.target)) {
-            dropdownMenu.classList.remove('show');
-          }
-        });
-      }
+        const profileBtn = document.getElementById('profile-btn');
+        const dropdownMenu = document.getElementById('dropdown-menu');
+        
+        if (profileBtn && dropdownMenu) {
+            profileBtn.addEventListener('click', function() {
+                dropdownMenu.classList.toggle('show');
+            });
+            
+            // Close dropdown when clicking outside
+            document.addEventListener('click', function(event) {
+                if (!profileBtn.contains(event.target) && !dropdownMenu.contains(event.target)) {
+                    dropdownMenu.classList.remove('show');
+                }
+            });
+        }
     });
   </script>
 
 </body>
-
 </html>
-<?php
+<?php 
 // Close database connection
-mysqli_close($conn);
+mysqli_close($conn); 
 ?>
